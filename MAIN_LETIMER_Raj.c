@@ -1,6 +1,9 @@
 /*Name :- Raj Lavingia
   Credits : Dan Walkes
-  Date :- 1/30/19 */
+  Date :- 1/30/19 
+  reference : https://www.silabs.com/community/wireless/bluetooth/knowledge-base.entry.html/2017/08/17/using_low_energytim-9RYB
+  https://www.silabs.com/community/mcu/32-bit/forum.topic.html/bgm111_letimer_outpu-WMEF
+  */
 
 /* Board Headers */
 
