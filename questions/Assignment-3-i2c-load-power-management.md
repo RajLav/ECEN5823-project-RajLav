@@ -7,11 +7,11 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
 
 1. What is the average current per period?   
    Answer:
-   3mA  
+   237uA  
      
 2. What is the average current when the Si7021 is Load Power Management OFF?  
    Answer:
-   3mA  
+   7uA  
    
 3. What is the average current when the Si7021 is Load Power Management ON?  
    Answer:
@@ -19,5 +19,5 @@ See [Mastering Markdown](https://guides.github.com/features/mastering-markdown/)
    
 4. How long is the Si7021 Load Power Management ON for 1 temperature reading?  
    Answer:
-	172ms
+	162.5ms
    
