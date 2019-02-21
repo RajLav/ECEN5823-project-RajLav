@@ -59,6 +59,7 @@ int main(void)
 	Event_Status_Retun_Back = 0;
 	Para_Passed = 1;
 	Connection_Established=0;
+	divide = 8;
 
   initMcu();
 
