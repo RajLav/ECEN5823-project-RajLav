@@ -144,7 +144,7 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 		case gecko_evt_le_connection_opened_id:
 		// Add connection to the connection_properties array
 		Open_Close_Connection = evt->data.evt_le_connection_opened.connection;
-		gecko_cmd_le_connection_set_parameters(Open_Close_Connection, 60, 60,3,30);
+		gecko_cmd_le_connection_set_parameters(Open_Close_Connection, 60, 60,3,300);
 		LOG_INFO("\nSuccessful Opened\n");
 		break;
 
