@@ -1,10 +1,10 @@
-/*Name :- Raj Lavingia
- * Credits : Dan Walkes
- * Date : 2/6/19
- */
+/* Name :- Raj Lavingia
+Credits : Dan Walkes
+Date :- 2/20/19
+Reference :- Help Taken from Simplicity studio Demo code for heath thermometer
+*/
 
-
-#include "I2C.h"
+#include "LETIMER.h"
 
 #include "init_mcu.h"
 #include "init_board.h"
@@ -44,41 +44,53 @@
 
 #include "log.h"
 #include "i2cspm.h"
-#include "i2c_tempsens.h"
-//#include "em_int.h"
+
 #ifndef MAX_CONNECTIONS
 #define MAX_CONNECTIONS 4
 #endif
 
+
+uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
+
 int main(void)
 {
+	//Variables initialised before running the gecko init function
+	flag = 0;
+	Report_Check = 0;
+	Event_Status_Retun_Back = 0;
+	Para_Passed = 1;
+	mask_I2C = 2;
+	event = On;
 
-  // Initialize device
+
+	Connection_Established=0;
+
   initMcu();
-  // Initialize board
+
   initBoard();
-  // Initialize application
+
   initApp();
-  //SLEEP_sleep();
-  gpioInit();
+
+//For log initialisation
+  logInit();
+
+  //Init_Globals();
 
   intialization();
 
-  SchedulerEvent=false;
+  // Initialise serial interface
+    RETARGET_SerialInit();
 
-  // Initialize stack
+    displayInit();
+  //Gecko main initialisation
   gecko_init(&config);
 
-  SLEEP_InitEx(NULL);
+  	while(1)
+  	{
+  		 // Always flush the UART buffer before letting the device go to sleep
+  		   RETARGET_SerialFlush();
+  		evt=gecko_wait_event();
+  		gecko_custom_update(evt);
+  	}
 
-
-  while (1) {
-	  if(SchedulerEvent)
-	  {
-		  I2C_TempInit();
-		  SchedulerEvent=0;
-	  }
-	  else Sleep();//modes();
-
-  }
 }
