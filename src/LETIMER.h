@@ -1,6 +1,6 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 02/20/2019
+Date :- 3/3/19
 */
 
 /* Board headers */
@@ -49,7 +49,62 @@ Date :- 02/20/2019
 #define MAX_CONNECTIONS 4
 #endif
 
+#include "ble_device_type.h"
+
+#define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
+#define TIMER_SUPPORTS_1HZ_TIMER_EVENT  1
+//#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
+
+#define INT_MIN_DURATION             80   //100ms
+#define INT_MAX_DURATION             80   //100ms
+#define SLAVE_LATENCY            0    //no latency
+#define TIMEOUT                  100  //1000ms
+
+#define INTERVAL                 16   //10ms
+#define WINDOW                   16   //10ms
+#define PASSIVE                  0
+
+#define TEMP_INVALID                  (uint32_t)0xFFFFFFFFu
+#define RSSI_INVALID                  (int8_t)127
+#define CONNECTION_HANDLE_INVALID     (uint8_t)0xFFu
+#define SERVICE_HANDLE_INVALID        (uint32_t)0xFFFFFFFFu
+#define CHARACTERISTIC_HANDLE_INVALID (uint16_t)0xFFFFu
+#define STATUS_INVALID           (uint8_t)0xFFu
+
+#define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
+
+bd_addr ServerAddress;
+
 uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
+
+typedef enum {
+  scanning,
+  opening,
+  discoverServices,
+  discoverCharacteristics,
+  enableIndication,
+  running
+} CONN_STATE;
+
+typedef struct {
+  uint8_t  connectionHandle;
+  int8_t   rssi;
+  uint16_t serverAddress;
+  uint32_t thermometerServiceHandle;
+  uint16_t thermometerCharacteristicHandle;
+  uint32_t temperature;
+} CONN_PROPERTIES;
+
+// Flag for indicating DFU Reset must be performed
+uint8_t BOOT;
+// Array for holding properties of multiple (parallel) connections
+CONN_PROPERTIES connProperties;
+// State of the connection under establishment
+CONN_STATE connState;
+// Health Thermometer service UUID defined by Bluetooth SIG
+uint8_t SERVICE[2]; //
+// Temperature Measurement characteristic UUID defined by Bluetooth SIG
+uint8_t CHARACTERS[2]; //= { 0x1c, 0x2a };
 
 // Gecko configuration parameters (see gecko_configuration.h)
 static const gecko_configuration_t config = {
@@ -70,8 +125,8 @@ static const gecko_configuration_t config = {
 };
 
 #define TOTAL_P (1.00) //Total period of 3sec , every 3 sec asks for temperature
-#define COMP0 	    (0x1UL) // values taken from efr32bg13p_letimer.h
-#define COMP1 	    (0x2UL) // values taken from efr32bg13p_letimer.h
+#define COMP0       (0x1UL) // values taken from efr32bg13p_letimer.h
+#define COMP1       (0x2UL) // values taken from efr32bg13p_letimer.h
 #define interrupt  ( COMP0 | COMP1) //bitwise or comp0 and comp1 for interrupt
 
 
@@ -110,3 +165,7 @@ uint32_t mask;
 uint32_t mask_I2C;
 uint8_t flag;
 uint32_t update_display;
+bool HEADER;
+uint8_t* charValue;
+uint16_t addrValue;
+uint8_t statusRet;

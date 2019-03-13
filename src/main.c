@@ -1,9 +1,7 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 2/20/19
-Reference :- Help Taken from Simplicity studio Demo code for heath thermometer
+Date :- 3/3/19
 */
-
 #include "LETIMER.h"
 
 #include "init_mcu.h"
@@ -54,16 +52,24 @@ uint8_t bluetooth_stack_heap[DEFAULT_BLUETOOTH_HEAP(MAX_CONNECTIONS)];
 
 int main(void)
 {
-	//Variables initialised before running the gecko init function
-	flag = 0;
-	Report_Check = 0;
-	Event_Status_Retun_Back = 0;
-	Para_Passed = 1;
-	mask_I2C = 2;
-	event = On;
+  //Variables initialised before running the gecko init function
+  flag = 0;
+  Report_Check = 0;
+  Event_Status_Retun_Back = 0;
+  Para_Passed = 1;
+  mask_I2C = 2;
+  event = On;
+  HEADER=true;
+  BOOT=0;
+  SERVICE[0] =  0x09;
+  SERVICE[1] = 0x18;
+  CHARACTERS[0] = 0x1c;
+  CHARACTERS[1] = 0x2a;
+  ServerAddress.addr[0]=0xd5; ServerAddress.addr[1]=0x2f; ServerAddress.addr[2]=0xef; ServerAddress.addr[3]=0x57; ServerAddress.addr[4]=0x0b;
+  ServerAddress.addr[5]=0x00;
 
 
-	Connection_Established=0;
+  Connection_Established=0;
 
   initMcu();
 
@@ -85,12 +91,12 @@ int main(void)
   //Gecko main initialisation
   gecko_init(&config);
 
-  	while(1)
-  	{
-  		 // Always flush the UART buffer before letting the device go to sleep
-  		   RETARGET_SerialFlush();
-  		evt=gecko_wait_event();
-  		gecko_custom_update(evt);
-  	}
+    while(1)
+    {
+       // Always flush the UART buffer before letting the device go to sleep
+         RETARGET_SerialFlush();
+      evt=gecko_wait_event();
+      gecko_custom_update(evt);
+    }
 
 }

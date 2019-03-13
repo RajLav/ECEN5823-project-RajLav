@@ -1,5 +1,6 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
+Date :- 3/3/19
 */
 
 /*Include Header File*/
@@ -88,21 +89,22 @@ void LETIMER0_IRQHandler(void)
 		mask |= update_display;
 		gecko_external_signal(mask);
 		++roll;
+#if (DEVICE_IS_BLE_SERVER==1)
 		if(roll%3 == 0)
 		{
 			mask |= Para_Passed;
 			gecko_external_signal(mask); //call the gecko function
 		}
-		//flag = 0;
-		mask |= Para_Passed;
-		gecko_external_signal(mask); //call the gecko function
+#endif
+
 	}
 	else
 		{
 			LOG_INFO("\n 80 ms complete\n");
 			LETIMER_IntClear(LETIMER0,LETIMER_IF_COMP1);
 			event = InitWrite;
-			gecko_external_signal(Para_Passed);
+			mask |= Para_Passed;
+			gecko_external_signal(mask);
 
 		}
 
@@ -120,8 +122,6 @@ void I2C_Write(void)
   	seq.buf[0].len    = 1;
   	NVIC_EnableIRQ(I2C0_IRQn);
    	return_check = I2C_TransferInit(I2C0, &seq);
-
-
 }
 
 void State_Write(void)
@@ -136,7 +136,6 @@ void State_Write(void)
 void State_Read(void)
 {
 	CORE_DECLARE_IRQ_STATE;
-				    	  // mask &= ~Para_Passed;
 	CORE_ENTER_CRITICAL();
 	data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
 	CORE_EXIT_CRITICAL();
@@ -171,9 +170,6 @@ void I2C0_IRQHandler(void)
 				LOG_INFO("In the I2c handler irq\n");
 				event = I2CComplete;
 				Write_Read^=1;
-//				mask |= mask_I2C;
-//				gecko_external_signal(mask); //call the gecko function
-
 			}
 		else
 			{
@@ -192,6 +188,21 @@ void I2C0_IRQHandler(void)
 	}
 	NVIC_ClearPendingIRQ(I2C0_IRQn);
 }
+
+uint8_t Status_Return(uint8_t connection)
+{
+    if (connProperties.connectionHandle != connection)
+    	return STATUS_INVALID;
+    return 1;
+}
+
+void AddConn(uint8_t connection, uint16_t address)
+{
+  // Make array of this and add addresses
+  connProperties.connectionHandle = connection;
+  connProperties.serverAddress    = address;
+}
+
 void Event_Handler(void)
 {
 	if(event == On)
@@ -219,7 +230,6 @@ void Event_Handler(void)
 					LOG_INFO("Time:%d\t",loggerGetTimestamp(roll));
 
 					State_Write();
-			  		//EMU_EnterEM1();//EMU_EnterEM1();
 			  	}
 			  	else if(Write_Read==Read)
 			  	{
@@ -272,36 +282,161 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 	gecko_update(evt);
 	switch(BGLIB_MSG_ID(evt->header))
 	{
-    // This boot event is generated when the system boots up after reset
+
 		case gecko_evt_system_boot_id:
+#if (DEVICE_IS_BLE_SERVER==0) //check for server and client
+      LOG_INFO("System Initiated\n");
+        gecko_cmd_le_gap_set_discovery_type(le_gap_phy_1m, PASSIVE);
+        gecko_cmd_le_gap_set_discovery_timing(le_gap_phy_1m, INTERVAL, WINDOW);
+        //display on lcd on second row ble address of another board
+        gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
+        displayPrintf(DISPLAY_ROW_CONNECTION,"Scanning");
+        displayPrintf(DISPLAY_ROW_NAME,"Client");
+        displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",ServerAddress.addr[5],ServerAddress.addr[4],
+		ServerAddress.addr[3],ServerAddress.addr[2],
+		ServerAddress.addr[1],ServerAddress.addr[0]);
+        //display on lcd on first row ble address of  board
+        //Reference taken from demo example
+        Addressptr = gecko_cmd_system_get_bt_address();
+		displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",Addressptr->address.addr[5],
+		Addressptr->address.addr[4],Addressptr->address.addr[3],
+		Addressptr->address.addr[2],Addressptr->address.addr[1],
+		Addressptr->address.addr[0]);
+        connState = scanning;
+//server code in else loop
+        #else
 		LOG_INFO("\r\nBLE Central started\r\n");
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
-					displayPrintf(DISPLAY_ROW_NAME,"Server");
-					Addressptr = gecko_cmd_system_get_bt_address();
-					displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",Addressptr->address.addr[5],
-							Addressptr->address.addr[4],
-							Addressptr->address.addr[3],
-							Addressptr->address.addr[2],
-							Addressptr->address.addr[1],
-							Addressptr->address.addr[0]);
+		displayPrintf(DISPLAY_ROW_NAME,"Server");
 
-		gecko_cmd_system_set_tx_power(0); //Initial power set to 0
+		Addressptr = gecko_cmd_system_get_bt_address();
+		displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",Addressptr->address.addr[5],
+		Addressptr->address.addr[4],
+		Addressptr->address.addr[3],
+		Addressptr->address.addr[2],
+		Addressptr->address.addr[1],
+		Addressptr->address.addr[0]);
+
+		gecko_cmd_system_set_tx_power(0);
 		gecko_cmd_le_gap_set_advertise_timing(0, 400, 400, 0, 0);
 		gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
+		#endif
 		break;
 
-        // This event is generated when a new connection is established
-		case gecko_evt_le_connection_opened_id:
-		// Add connection to the connection_properties array
+case gecko_evt_le_gap_scan_response_id:
+
+			if (evt->data.evt_le_gap_scan_response.packet_type == 0)
+			{
+				LOG_INFO("\n Scanning is on\n");
+				if(memcmp(&evt->data.evt_le_gap_scan_response.address.addr[0], 	&ServerAddress.addr[0], 6) == 0)
+				{//check for all 8*6 = 48 bits on both the ends for proper verification
+				LOG_INFO("\n Scanning is on part 2\n");
+				gecko_cmd_le_gap_end_procedure(); //interval
+				gecko_cmd_le_gap_connect(evt->data.evt_le_gap_scan_response.address,
+														evt->data.evt_le_gap_scan_response.address_type,
+														le_gap_phy_1m);
+				connState = opening; //if everything is successful then open the port for communication
+
+				}
+				else
+				{
+					//error sttae
+					LOG_INFO("\n Scanning is not successfully started\n");
+				}
+			}
+			break;
+
+
+
+case gecko_evt_le_connection_opened_id:
+			#if(DEVICE_IS_BLE_SERVER==0) //after opening a connection
+	        addrValue = (uint16_t)(evt->data.evt_le_connection_opened.address.addr[1] << 8)+ evt->data.evt_le_connection_opened.address.addr[0];
+	        AddConn(evt->data.evt_le_connection_opened.connection, addrValue); //add connection, shift bits
+	        gecko_cmd_gatt_discover_primary_services_by_uuid(evt->data.evt_le_connection_opened.connection,2,(const uint8_t*)SERVICE);
+	        connState = discoverServices; //discovreing state
+        #else
 		Open_Close_Connection = evt->data.evt_le_connection_opened.connection;
 		gecko_cmd_le_connection_set_parameters(Open_Close_Connection, 60, 60,3,300);
 		LETIMER_Enable(LETIMER0,true);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Connected");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
 		LOG_INFO("\nSuccessful Opened\n");
+		#endif
 		break;
+//reference code taken from demo code given all the functions below are taken from that
+case gecko_evt_gatt_service_id:
+			statusRet = Status_Return(evt->data.evt_gatt_service.connection);
+			if (statusRet != STATUS_INVALID) {
+			connProperties.thermometerServiceHandle = evt->data.evt_gatt_service.service;
+			}
+			break;
 
-		case gecko_evt_le_connection_closed_id:
+case gecko_evt_gatt_characteristic_id:
+			statusRet = Status_Return(evt->data.evt_gatt_characteristic.connection);
+			if (statusRet != STATUS_INVALID) {
+			connProperties.thermometerCharacteristicHandle = evt->data.evt_gatt_characteristic.characteristic;
+			}
+			break;
+
+ case gecko_evt_gatt_characteristic_value_id:
+			displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
+               displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",ServerAddress.addr[5],	ServerAddress.addr[4],
+				ServerAddress.addr[3],ServerAddress.addr[2],ServerAddress.addr[1],ServerAddress.addr[0]);
+			charValue = &(evt->data.evt_gatt_characteristic_value.value.data[0]);
+			statusRet = Status_Return(evt->data.evt_gatt_characteristic_value.connection);
+			if (statusRet != STATUS_INVALID)
+			{
+			connProperties.temperature = (charValue[1] << 0) + (charValue[2] << 8) + (charValue[3] << 16);
+			}
+			gecko_cmd_gatt_send_characteristic_confirmation(evt->data.evt_gatt_characteristic_value.connection);
+			gecko_cmd_le_connection_get_rssi(evt->data.evt_gatt_characteristic_value.connection);
+			break;
+
+case gecko_evt_gatt_procedure_completed_id:
+			statusRet = Status_Return(evt->data.evt_gatt_procedure_completed.connection);
+			if (statusRet == STATUS_INVALID) {
+			break;
+			}
+			if (connState == discoverServices && connProperties.thermometerServiceHandle != SERVICE_HANDLE_INVALID) {
+			gecko_cmd_gatt_discover_characteristics_by_uuid(evt->data.evt_gatt_procedure_completed.connection,
+			                                  connProperties.thermometerServiceHandle,
+			                                  2,
+			                                  (const uint8_t*)CHARACTERS);
+			connState = discoverCharacteristics;
+			break;
+			}
+			if (connState == discoverCharacteristics && connProperties.thermometerCharacteristicHandle != CHARACTERISTIC_HANDLE_INVALID) {
+			LOG_INFO("characteristic discovery finished\n");
+			gecko_cmd_le_gap_end_procedure();
+			gecko_cmd_gatt_set_characteristic_notification(evt->data.evt_gatt_procedure_completed.connection,
+			                                 connProperties.thermometerCharacteristicHandle,
+			                                 gatt_indication);
+			connState = enableIndication;
+			break;
+			}
+			if (connState == enableIndication) {
+			connState = running;
+			}
+			break;
+
+
+case gecko_evt_le_connection_closed_id:
+		#if(DEVICE_IS_BLE_SERVER==0)
+        LOG_INFO("connection closed ID\n"); //allindividual addresses are mentioned 8*6 = 48 bits
+        Addressptr = gecko_cmd_system_get_bt_address();
+		displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",Addressptr->address.addr[5],
+		Addressptr->address.addr[4],Addressptr->address.addr[3],Addressptr->address.addr[2],Addressptr->address.addr[1],Addressptr->address.addr[0]);
+		displayPrintf(DISPLAY_ROW_CONNECTION,"Discovery\n");
+        displayPrintf(DISPLAY_ROW_BTADDR2,"%02x:%02x:%02x:%02x:%02x:%02x",ServerAddress.addr[5],
+		ServerAddress.addr[4],ServerAddress.addr[3],ServerAddress.addr[2],ServerAddress.addr[1],ServerAddress.addr[0]);
+		displayPrintf(DISPLAY_ROW_NAME,"Client");
+		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
+
+        gecko_cmd_le_gap_start_discovery(le_gap_phy_1m, le_gap_discover_generic);
+        connState = scanning;
+        #else
 		Connection_Established = 0;
 		gecko_cmd_le_gap_start_advertising(0, le_gap_general_discoverable, le_gap_connectable_scannable);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
@@ -309,13 +444,14 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 		displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s"," ");
 		LOG_INFO("\nSuccessful Closed\n");
 		LETIMER_Enable(LETIMER0,false);
+		#endif
 		break;
 
-		case gecko_evt_gatt_server_characteristic_status_id:
-		//If changed by temperature value change the value continuously
+case gecko_evt_gatt_server_characteristic_status_id:
+
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Handling Indications");
 		if((evt->data.evt_gatt_server_characteristic_status.characteristic == gattdb_Temperature)
-	    &&(evt->data.evt_gatt_server_characteristic_status.status_flags == 0x01)) //book reference
+	    &&(evt->data.evt_gatt_server_characteristic_status.status_flags == 0x01))
 			{
 				LOG_INFO("\nStatus id loop\n\r");
 				Connection_Established = 1;
@@ -323,25 +459,23 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 	      break;
 
 
-		case gecko_evt_system_external_signal_id:
+case gecko_evt_system_external_signal_id:
+Event_Status_Retun_Back = evt->data.evt_system_external_signal.extsignals;
+#if (DEVICE_IS_BLE_SERVER==1)
 	    LOG_INFO("Clock Frequency:%d",CMU_ClockFreqGet(cmuClock_LFA));
 	    if(Connection_Established == 1)
 		    {
-			    Event_Status_Retun_Back = evt->data.evt_system_external_signal.extsignals;
 
 			    if(Event_Status_Retun_Back & Para_Passed )
 			    	{
 			    	  CORE_DECLARE_IRQ_STATE;
-			    	  // mask &= ~Para_Passed;
 			    	  CORE_ENTER_CRITICAL();
 			    	  mask &= ~Para_Passed ;
 			    	  CORE_EXIT_CRITICAL();
 			    	  LOG_INFO("Para passed loop\n");
-			    	  //I2C_Begin();
-			    	 //
+
 			    	  Event_Handler();
-			    	  //Softtime is on
-			    	  //gecko_cmd_hardware_set_soft_timer(2621, 0, 0);
+
 			    	}
 			    if(Event_Status_Retun_Back & mask_I2C )
 			    {
@@ -381,22 +515,45 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 			    	Event_Handler();
 			    }
 			    }
-	    break;
+	    #else
 
-//		case gecko_evt_hardware_soft_timer_id:
-//
-//				I2C_Write();
-//				State_Write();
-//				State_Read();
-//			    Conversion_BLE();
-//			    //Soft timer is off
-//			    gecko_cmd_hardware_set_soft_timer(0, 0, 0);
-//			    gecko_cmd_le_connection_get_rssi(Open_Close_Connection);
-//			    LETIMER_Enable(LETIMER0, true);
-//			    LOG_INFO("\nTemperature is sent successfully\n");
-//			    break;
+			    if (Event_Status_Retun_Back & EXT_SIGNAL_PRINT_RESULTS) {
 
-		case gecko_evt_le_connection_rssi_id:
+						CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    		mask &= ~EXT_SIGNAL_PRINT_RESULTS;
+			    		CORE_EXIT_CRITICAL();
+						if (true == HEADER)
+						{
+						HEADER = false;
+						}
+						if ((TEMP_INVALID != connProperties.temperature)) {
+						displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(float)connProperties.temperature*0.001);
+						LOG_INFO("Temperature:%d",connProperties.temperature);
+						}
+					}
+
+
+					 if(Event_Status_Retun_Back & update_display)
+			    	{
+			    		CORE_DECLARE_IRQ_STATE;
+			    		CORE_ENTER_CRITICAL();
+			    		mask &= ~update_display;
+			    		CORE_EXIT_CRITICAL();
+			    		displayUpdate();
+			    	}
+			    	#endif
+			    	break;
+
+case gecko_evt_le_connection_rssi_id:
+		 #if (DEVICE_IS_BLE_SERVER==0) //Client
+       LOG_INFO("RSSI measured\n");
+        statusRet = Status_Return(evt->data.evt_le_connection_rssi.connection);
+        if (statusRet != STATUS_INVALID) {
+          connProperties.rssi = evt->data.evt_le_connection_rssi.rssi;
+          gecko_external_signal(EXT_SIGNAL_PRINT_RESULTS);
+        }
+       #else
    		rssi_value_owndefined = evt->data.evt_le_connection_rssi.rssi;
    		gecko_cmd_system_halt(1);
 									if(rssi_value_owndefined > -35)
@@ -448,6 +605,8 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 
 			    		    		gecko_cmd_system_halt(0);
 			    		    		break;
+			    		  #endif
+			    		  break;
 
 	}
 }
