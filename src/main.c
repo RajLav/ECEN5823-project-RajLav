@@ -65,7 +65,7 @@ int main(void)
   SERVICE[1] = 0x18;
   CHARACTERS[0] = 0x1c;
   CHARACTERS[1] = 0x2a;
-  ServerAddress.addr[0]=0xd5; ServerAddress.addr[1]=0x2f; ServerAddress.addr[2]=0xef; ServerAddress.addr[3]=0x57; ServerAddress.addr[4]=0x0b;
+  ServerAddress.addr[0]=0xc0; ServerAddress.addr[1]=0x29; ServerAddress.addr[2]=0xef; ServerAddress.addr[3]=0x57; ServerAddress.addr[4]=0x0b;
   ServerAddress.addr[5]=0x00;
 
 
