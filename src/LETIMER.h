@@ -1,6 +1,6 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 3/3/19
+Date :- 3/13/19
 */
 
 /* Board headers */
@@ -53,15 +53,13 @@ Date :- 3/3/19
 
 #define SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT 1
 #define TIMER_SUPPORTS_1HZ_TIMER_EVENT  1
-//#define CORE_DECLARE_IRQ_STATE        CORE_irqState_t irqState
+#define INT_MIN_DURATION             80
+#define INT_MAX_DURATION             80
+#define SLAVE_LATENCY            0
+#define TIMEOUT                  100
 
-#define INT_MIN_DURATION             80   //100ms
-#define INT_MAX_DURATION             80   //100ms
-#define SLAVE_LATENCY            0    //no latency
-#define TIMEOUT                  100  //1000ms
-
-#define INTERVAL                 16   //10ms
-#define WINDOW                   16   //10ms
+#define INTERVAL                 16
+#define WINDOW                   16
 #define PASSIVE                  0
 
 #define TEMP_INVALID                  (uint32_t)0xFFFFFFFFu
@@ -167,5 +165,14 @@ uint8_t flag;
 uint32_t update_display;
 bool HEADER;
 uint8_t* charValue;
+uint8_t temperory_variable;
 uint16_t addrValue;
 uint8_t statusRet;
+uint32_t Connection_Not_Established_Server;
+int GPIO_Return_Key;
+ uint8_t Connection_Established_Server_Success;
+  bool Passkey_Status_Check;
+  bool Passkey_Bonding_Status_Fail;
+  uint8_t Connection_Established_Server_Success;
+  uint32_t passphrase_key;
+  uint8_t *pointer;

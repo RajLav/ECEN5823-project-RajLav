@@ -8,7 +8,7 @@
 #include "em_gpio.h"
 #include <string.h>
 
-
+#include "button.h"
 /**
  * TODO: define these.  See the radio board user guide at https://www.silabs.com/documents/login/user-guides/ug279-brd4104a-user-guide.pdf
  * and GPIO documentation at https://siliconlabs.github.io/Gecko_SDK_Doc/efm32g/html/group__GPIO.html

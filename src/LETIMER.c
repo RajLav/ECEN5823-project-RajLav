@@ -1,12 +1,12 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 3/3/19
+Date :- 3/13/19
 */
 
 /*Include Header File*/
 
 #include "LETIMER.h"
-
+#include "button.h"
 
 const LETIMER_Init_TypeDef letimer =
  {
@@ -43,41 +43,6 @@ void intialization(void)
 
  }
 
-void tick_delay(uint32_t us_wait)
-{
-	uint32_t temp1=LETIMER_CounterGet(LETIMER0);
-	uint32_t temp2 = CounterGet(us_wait);
-			if(us_wait==0)temp2=1;
-			NVIC_DisableIRQ(LETIMER0_IRQn);
-			if(temp1>temp2)
-			{
-				LETIMER_CompareSet(LETIMER0,1,temp2);
-			}
-			else
-			{
-				LETIMER_CompareSet(LETIMER0,1,((((CMU_ClockFreqGet(cmuClock_LFA)/(divide*1))*(TOTAL_P)))-temp2-temp1));
-			}
-			NVIC_EnableIRQ(LETIMER0_IRQn);
-			LETIMER_IntSet(LETIMER0,LETIMER_IFC_COMP0|LETIMER_IFC_COMP1);
-			LETIMER_IntEnable(LETIMER0,LETIMER_IFC_COMP0|LETIMER_IFC_COMP1);
-
-}
-
-void I2C_Begin(void)
-{
-	//Disable all interuppts
-	  LETIMER_IntDisable(LETIMER0,_LETIMER_IF_COMP0_MASK); //Disable Interrupts
-    I2CSPM_Init_TypeDef* I2CSPM_ptr;
-	//For I2c transfer SDA and SCL pins defined
-    I2CSPM_ptr->sclPin=10;
-	I2CSPM_ptr->sdaPin=11;
-	I2CSPM_ptr->portLocationScl=14;
-	I2CSPM_ptr->portLocationScl=16;
-	I2CSPM_Init(I2CSPM_ptr);
-	//On->1
-    GPIO_PinModeSet(gpioPortD, 15, gpioModePushPull, 1);	//Enable the I2C module
-    tick_delay(80000);
-}
 
 void LETIMER0_IRQHandler(void)
 {
@@ -89,14 +54,15 @@ void LETIMER0_IRQHandler(void)
 		mask |= update_display;
 		gecko_external_signal(mask);
 		++roll;
-#if (DEVICE_IS_BLE_SERVER==1)
+		//Check if Server or client , if 1 then server options
+		#if (DEVICE_IS_BLE_SERVER==1)
 		if(roll%3 == 0)
 		{
 			mask |= Para_Passed;
 			gecko_external_signal(mask); //call the gecko function
 		}
-#endif
-
+		#endif
+		//1st if and endif is finished here w
 	}
 	else
 		{
@@ -105,100 +71,20 @@ void LETIMER0_IRQHandler(void)
 			event = InitWrite;
 			mask |= Para_Passed;
 			gecko_external_signal(mask);
-
 		}
-
 }
 
-void I2C_Write(void)
-{
-	LOG_INFO("\nIn the I2c_Write function\n");
-	address = 0x80;
-	address_2 = 0xE3;
-  	seq.addr  = address;
-  	seq.flags = I2C_FLAG_WRITE;
-  	i2c_write_data[0] = address_2;
-  	seq.buf[0].data   = i2c_write_data;
-  	seq.buf[0].len    = 1;
-  	NVIC_EnableIRQ(I2C0_IRQn);
-   	return_check = I2C_TransferInit(I2C0, &seq);
-}
 
-void State_Write(void)
-{
-    LOG_INFO("\nIn the State_Write function\n");
-	seq.flags = I2C_FLAG_READ;
-	seq.buf[0].data   = i2c_read_data;
-	seq.buf[0].len    = 2;
-	return_check = I2C_TransferInit(I2C0,&seq);
-}
-
-void State_Read(void)
-{
-	CORE_DECLARE_IRQ_STATE;
-	CORE_ENTER_CRITICAL();
-	data |= (i2c_read_data[0]<<8)|(i2c_read_data[1]) ;
-	CORE_EXIT_CRITICAL();
-
-	temp=(((175.72*data)/65535)-46.85)*1000;
-	LOG_INFO("Temperature in Celsius:%f\n",(float)(temp/1000));
-	displayPrintf(DISPLAY_ROW_TEMPVALUE,"%f",(temp/1000));
-	//GPIO_PinModeSet(gpioPortD, 15, gpioModePushPull, 0);	//disEnable the I2C module
-	LETIMER_IntEnable(LETIMER0,_LETIMER_IF_COMP0_MASK);
-	flag = 1;
-
-}
-
-void Conversion_BLE(void)
-{
-    uint8_t flags = 0x00;
-    uint8_t *p = temp11;
-    UINT8_TO_BITSTREAM(p, flags);
-    temperature = FLT_TO_UINT32(temp, -3);
-    UINT32_TO_BITSTREAM(p, temperature);
-    gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_Temperature, 5, temp11);
-}
-
-void I2C0_IRQHandler(void)
-{
-	LOG_INFO("\nI2C IRQ Loop\n");
-	return_check = I2C_Transfer(I2C0);
-	if(return_check!=i2cTransferInProgress)
-	{
-		if(return_check==i2cTransferDone)
-			{
-				LOG_INFO("In the I2c handler irq\n");
-				event = I2CComplete;
-				Write_Read^=1;
-			}
-		else
-			{
-				event=Error;
-			}
-		mask |= mask_I2C;
-		gecko_external_signal(mask); //call the gecko function
-	}
-	else
-	{
-		LOG_INFO("Sleep mode deep\n");
-		event = SleepDeep;
-
-		mask |= mask_I2C;
-		gecko_external_signal(mask); //call the gecko function
-	}
-	NVIC_ClearPendingIRQ(I2C0_IRQn);
-}
 
 uint8_t Status_Return(uint8_t connection)
 {
     if (connProperties.connectionHandle != connection)
-    	return STATUS_INVALID;
+    return STATUS_INVALID;
     return 1;
 }
 
 void AddConn(uint8_t connection, uint16_t address)
 {
-  // Make array of this and add addresses
   connProperties.connectionHandle = connection;
   connProperties.serverAddress    = address;
 }
@@ -236,7 +122,6 @@ void Event_Handler(void)
 					LOG_INFO("Time:%d\t",loggerGetTimestamp(roll));
 
 			  		State_Read();
-			  		//Conversion_BLE();
 			  		event=SleepDeep;
 			  	}
 		}
@@ -249,24 +134,19 @@ void Event_Handler(void)
 		{
 			LOG_INFO("Time:%d\t",loggerGetTimestamp(roll));
 
-			//EMU_EnterEM1();
 		}
 
 		else if(event == SleepDeep)
 		{
 			LOG_INFO("sleepdeep\t");
 
-			////SLEEP_SleepBlockEnd(sleepEM2);
-		  	//EMU_EnterEM3(true);
 		}
 		else if(event == Error)
 		{
 			LOG_INFO("Time:%d\t",loggerGetTimestamp(roll));
 
 			LOG_INFO("\nEntered in the error state\n");
-		  	//NVIC_DisableIRQ(I2C0_IRQn);
-		  	//SLEEP_SleepBlockEnd(sleepEM2);
-		  	//EMU_EnterEM3(true);
+
 		}
 
 	}
@@ -276,7 +156,31 @@ void timerEnable1HzSchedulerEvent(uint32_t Display)
 {
 	update_display = Display;
 }
+void check_status()
+{
+		LOG_INFO("\nEntered in check status function \n");
+		temperory_variable = GPIO_PinInGet(gpioPortF,6);
+		temperory_variable^=1;
+		//check for temp variable value it will toggle between 0 and 1 , if 0 then button released , if 1 then button pressed
+		//Here take care of debounce issue, press button for a little bit longer time in order to see the value change
 
+		if(GPIO_Return_Key == Button_Port_Mask)
+		{
+			button_return_value = true;
+		}
+
+}
+
+void GPIO_EVEN_IRQHandler(void)
+{
+	CORE_AtomicDisableIrq();
+	GPIO_Return_Key = GPIO_IntGet();
+	GPIO_IntClear(GPIO_Return_Key);
+	check_status();
+	mask |= Button_Press_Pin;
+	gecko_external_signal(mask);
+	CORE_AtomicEnableIrq();
+}
 void gecko_custom_update(struct gecko_cmd_packet* evt)
 {
 	gecko_update(evt);
@@ -305,10 +209,14 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
         connState = scanning;
 //server code in else loop
         #else
+        gecko_cmd_sm_delete_bondings();
 		LOG_INFO("\r\nBLE Central started\r\n");
+		//random passkeys are generated
+		gecko_cmd_sm_set_passkey(-1);
+		//0x0B (1101) for conditions check
+		gecko_cmd_sm_configure(0x0B, sm_io_capability_displayyesno);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
-
 		Addressptr = gecko_cmd_system_get_bt_address();
 		displayPrintf(DISPLAY_ROW_BTADDR,"%02x:%02x:%02x:%02x:%02x:%02x",Addressptr->address.addr[5],
 		Addressptr->address.addr[4],
@@ -346,7 +254,34 @@ case gecko_evt_le_gap_scan_response_id:
 			}
 			break;
 
+case gecko_evt_sm_confirm_passkey_id:
+	    	{
+				LOG_INFO("\n Passkey id confirmation\n");
+	    		Passkey_Status_Check = true; //check if status is true or false
+	    		passphrase_key = evt->data.evt_sm_confirm_passkey.passkey;
+	    		displayPrintf(DISPLAY_ROW_PASSKEY,"passkey- %d",passphrase_key);
+	    		displayPrintf(DISPLAY_ROW_ACTION,"Confirm With PB0");
+	    		break;
+	    	}
 
+case gecko_evt_sm_bonded_id:
+	    	{
+				LOG_INFO("\n In bonded ID loop\n");
+	    		displayPrintf(DISPLAY_ROW_PASSKEY,"Bonded Successfully");
+	    		displayPrintf(DISPLAY_ROW_ACTION,"Connected");
+	    		Passkey_Bonding_Status_Fail = false; //Bonding status fail so that go into next function
+	    		break;
+	    	}
+
+	    	case gecko_evt_sm_bonding_failed_id:
+	    	{
+				LOG_INFO("\n Bodninf failed loop\n");
+
+	    		displayPrintf(DISPLAY_ROW_ACTION,"Bonding Failed");
+	    		Passkey_Bonding_Status_Fail = true; //Bonding status true
+	    		gecko_cmd_le_connection_close(Open_Close_Connection);
+	    		break;
+	    	}
 
 case gecko_evt_le_connection_opened_id:
 			#if(DEVICE_IS_BLE_SERVER==0) //after opening a connection
@@ -361,6 +296,19 @@ case gecko_evt_le_connection_opened_id:
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Connected");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
 		LOG_INFO("\nSuccessful Opened\n");
+		Connection_Established_Server_Success = evt->data.evt_le_connection_opened.bonding;
+   		if(Connection_Established_Server_Success != Connection_Not_Established_Server)
+    		{
+				LOG_INFO("\n Check for server access if connected or not\n");
+    			displayPrintf(DISPLAY_ROW_ACTION,"Already Bonded");
+    			displayPrintf(DISPLAY_ROW_PASSKEY,"Connected");
+    			gecko_cmd_sm_increase_security(Open_Close_Connection);
+    		}
+   		else
+    		{
+			LOG_INFO("\n Check for server access if connected or not part 2\n");
+			gecko_cmd_sm_increase_security(Open_Close_Connection);
+    		}
 		#endif
 		break;
 //reference code taken from demo code given all the functions below are taken from that
@@ -462,6 +410,24 @@ case gecko_evt_gatt_server_characteristic_status_id:
 case gecko_evt_system_external_signal_id:
 Event_Status_Retun_Back = evt->data.evt_system_external_signal.extsignals;
 #if (DEVICE_IS_BLE_SERVER==1)
+if(Event_Status_Retun_Back & Button_Press_Pin)
+					{
+						LOG_INFO("\nButton pressed interrupt loop\n\r");
+						pointer = &temperory_variable;
+						/* Begin Critical Section */
+						CORE_DECLARE_IRQ_STATE;
+						CORE_ENTER_CRITICAL();
+						mask &= ~Button_Press_Pin;				//Clear the Event Mask
+						CORE_EXIT_CRITICAL();
+						/* End Critical Section */
+						displayUpdate();
+						gecko_cmd_sm_passkey_confirm(Open_Close_Connection, true);
+						displayPrintf(DISPLAY_ROW_ACTION,"PassKey Accepted");
+						button_return_temp_status = false;
+					    gecko_cmd_gatt_server_send_characteristic_notification(0xFF, gattdb_Button_State, 1, pointer);
+					    //1 is the size defined
+					}
+
 	    LOG_INFO("Clock Frequency:%d",CMU_ClockFreqGet(cmuClock_LFA));
 	    if(Connection_Established == 1)
 		    {
@@ -473,17 +439,14 @@ Event_Status_Retun_Back = evt->data.evt_system_external_signal.extsignals;
 			    	  mask &= ~Para_Passed ;
 			    	  CORE_EXIT_CRITICAL();
 			    	  LOG_INFO("Para passed loop\n");
-
 			    	  Event_Handler();
 
 			    	}
 			    if(Event_Status_Retun_Back & mask_I2C )
 			    {
-			    	  LOG_INFO("\nmask i2c loop\n");
-
+			    	LOG_INFO("\nmask i2c loop\n");
 			    	CORE_DECLARE_IRQ_STATE;
-			    	// mask &= ~Para_Passed;
-			        CORE_ENTER_CRITICAL();
+			    	CORE_ENTER_CRITICAL();
 			        mask &= ~mask_I2C ;
 			        CORE_EXIT_CRITICAL();
 			        Event_Handler();
@@ -502,12 +465,10 @@ Event_Status_Retun_Back = evt->data.evt_system_external_signal.extsignals;
 			    if(Event_Status_Retun_Back & update_display)
 			    {
 			    	CORE_DECLARE_IRQ_STATE;
-			    				    	// mask &= ~Para_Passed;
 			    	CORE_ENTER_CRITICAL();
 			    	mask &= ~update_display;
 					CORE_EXIT_CRITICAL();
 					displayUpdate();
-					LOG_INFO("Disp update 1s\n");
 			    }
 			    else
 			    {

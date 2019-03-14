@@ -198,7 +198,7 @@ void displayInit()
 	}
 #if SCHEDULER_SUPPORTS_DISPLAY_UPDATE_EVENT
 #if TIMER_SUPPORTS_1HZ_TIMER_EVENT
-	timerEnable1HzSchedulerEvent(4);
+timerEnable1HzSchedulerEvent(4);
 #else
 #warning "Timer does not support scheduling 1Hz event.  Please implement for full display support"
 #endif
