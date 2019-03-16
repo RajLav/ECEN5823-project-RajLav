@@ -214,7 +214,8 @@ void gecko_custom_update(struct gecko_cmd_packet* evt)
 		//random passkeys are generated
 		gecko_cmd_sm_set_passkey(-1);
 		//0x0B (1101) for conditions check
-		gecko_cmd_sm_configure(0x0B, sm_io_capability_displayyesno);
+		gecko_cmd_sm_set_bondable_mode(1);
+		gecko_cmd_sm_configure(0x07, sm_io_capability_displayyesno);
 		displayPrintf(DISPLAY_ROW_CONNECTION,"Advertising");
 		displayPrintf(DISPLAY_ROW_NAME,"Server");
 		Addressptr = gecko_cmd_system_get_bt_address();
@@ -302,12 +303,11 @@ case gecko_evt_le_connection_opened_id:
 				LOG_INFO("\n Check for server access if connected or not\n");
     			displayPrintf(DISPLAY_ROW_ACTION,"Already Bonded");
     			displayPrintf(DISPLAY_ROW_PASSKEY,"Connected");
-    			gecko_cmd_sm_increase_security(Open_Close_Connection);
     		}
    		else
     		{
 			LOG_INFO("\n Check for server access if connected or not part 2\n");
-			gecko_cmd_sm_increase_security(Open_Close_Connection);
+
     		}
 		#endif
 		break;
