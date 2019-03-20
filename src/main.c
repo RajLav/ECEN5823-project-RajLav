@@ -1,6 +1,6 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 3/13/19
+Date :- 3/20/19
 */
 #include "LETIMER.h"
 
@@ -67,18 +67,21 @@ int main(void)
   CHARACTERS[1] = 0x2a;
   ServerAddress.addr[0]=0xc0; ServerAddress.addr[1]=0x29; ServerAddress.addr[2]=0xef; ServerAddress.addr[3]=0x57; ServerAddress.addr[4]=0x0b;
   ServerAddress.addr[5]=0x00;
-  ////////////////////////// Will check if bonding is done proper or not
   Connection_Not_Established_Server=0xff; //error state by default
   Connection_Established_Server_Success = Connection_Not_Established_Server;
   //check the status initial variable declared
   Passkey_Status_Check = false;
   Passkey_Bonding_Status_Fail = false;
   Connection_Established=0;
+  ButtonState=0;
+  Button_Status_Start_Time=0;
+  Passkey_Status_Check=false;
   initMcu();
   initBoard();
   initApp();
 //For log initialisation
   logInit();
+  Button_UUID();
   //Init_Globals();
   intialization();
   // Initialise serial interface

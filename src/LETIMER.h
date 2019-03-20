@@ -1,6 +1,6 @@
 /* Name :- Raj Lavingia
 Credits : Dan Walkes
-Date :- 3/13/19
+Date :- 3/20/19
 */
 
 /* Board headers */
@@ -69,7 +69,7 @@ Date :- 3/13/19
 #define CHARACTERISTIC_HANDLE_INVALID (uint16_t)0xFFFFu
 #define STATUS_INVALID           (uint8_t)0xFFu
 
-#define EXT_SIGNAL_PRINT_RESULTS      (uint32_t)(16)
+#define bit_mask_external_event      (uint32_t)(16)
 
 bd_addr ServerAddress;
 
@@ -91,6 +91,12 @@ typedef struct {
   uint32_t thermometerServiceHandle;
   uint16_t thermometerCharacteristicHandle;
   uint32_t temperature;
+
+  uint32_t	buttonServiceHandle;
+  uint16_t buttonCharacteristicHandle;
+  uint32_t button;
+
+
 } CONN_PROPERTIES;
 
 // Flag for indicating DFU Reset must be performed
@@ -98,11 +104,16 @@ uint8_t BOOT;
 // Array for holding properties of multiple (parallel) connections
 CONN_PROPERTIES connProperties;
 // State of the connection under establishment
-CONN_STATE connState;
+CONN_STATE present_state;
 // Health Thermometer service UUID defined by Bluetooth SIG
-uint8_t SERVICE[2]; //
+ uint8_t SERVICE[2]; //
 // Temperature Measurement characteristic UUID defined by Bluetooth SIG
-uint8_t CHARACTERS[2]; //= { 0x1c, 0x2a };
+ uint8_t CHARACTERS[2]; //= { 0x1c, 0x2a };
+///////////////////////////////////////////
+ uint8_t buttonSERVICE[16];
+
+ uint8_t buttonCHARACTERS[16];
+//////////////////////////////////////////
 
 // Gecko configuration parameters (see gecko_configuration.h)
 static const gecko_configuration_t config = {
@@ -153,7 +164,8 @@ float temp;
 Event event;
 
 //Varibales declared for HT
-uint8_t Slave_Latency_1,Open_Close_Connection,Event_Status_Retun_Back,Connection_Minimum,Connection_Maximum,Connection_over;
+uint8_t Slave_Latency_1,Event_Status_Retun_Back,Connection_Minimum,Connection_Maximum,Connection_over;
+uint8_t Open_Close_Connection;
 uint8_t Report_Check,flags,Para_Passed,Connection_Established,Minimum_Power_Set,Maximum_power_Set;
 uint32_t rssi_value_owndefined;
 uint32_t temperature;
@@ -176,3 +188,11 @@ int GPIO_Return_Key;
   uint8_t Connection_Established_Server_Success;
   uint32_t passphrase_key;
   uint8_t *pointer;
+	uint8_t flag_array_define[2];
+	uint8_t Flag_Status_Check;
+	uint8_t *ptr, *ptr3;
+	uint16_t check_value;
+	void Button_UUID();
+
+uint8_t ButtonState;
+uint8_t Button_Status_Start_Time;
