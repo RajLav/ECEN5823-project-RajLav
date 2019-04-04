@@ -327,7 +327,7 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
         }
         break;
 
-////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////gecko_cmd_flash_ps_erase_all()
 
     case gecko_evt_mesh_node_provisioning_started_id:
 
@@ -359,28 +359,6 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
         gecko_cmd_hardware_set_soft_timer(RESET_TIME, restartID, 1);
         break;
 
-
-    case gecko_evt_mesh_node_key_added_id:
-
-        LOG_INFO("New Key");
-        if(evt->data.evt_mesh_node_key_added.type)
-        	LOG_INFO("Application");
-        else
-        	LOG_INFO("Network");
-        LOG_INFO("is %f\r\n",evt->data.evt_mesh_node_key_added.index,Logging());
-
-        if(evt->data.evt_mesh_node_key_added.type == Application_Key_Type)
-      	  appkeyindex = evt->data.evt_mesh_node_key_added.index;
-        break;
-
-///////////////////////////////////////////////////////////////////////////////////////////////
-
-    case gecko_evt_mesh_node_model_config_changed_id:
-    {
-        LOG_INFO("Model Configuration Changed:[TIME]%f\n",Logging());
-        gecko_cmd_hardware_set_soft_timer((32768 * ProvisionTimeout), provisionID, 1);
-        break;
-    }
 //////////////////////////////////////////////////////////////////////////////////////////////
   case gecko_evt_le_connection_opened_id:
       LOG_INFO("Connection_Opened_ID:[TIME]%f\n",Logging());
