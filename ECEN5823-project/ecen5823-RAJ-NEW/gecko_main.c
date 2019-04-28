@@ -170,6 +170,7 @@ void set_device_name(bd_addr *DeviceAddress)
 {
  sprintf(DisplayString, "Subscriber: %x:%x", DeviceAddress->addr[1], DeviceAddress->addr[0]);
  displayPrintf(DISPLAY_ROW_NAME,"Subscriber");
+ displayPrintf(1,"Unlock:%d",servo_state);
  displayPrintf(DISPLAY_ROW_BTADDR2,"5823Sub%02x:%02x",DeviceAddress->addr[1],DeviceAddress->addr[0]);
  resp = gecko_cmd_gatt_server_write_attribute_value(gattdb_device_name, 0, strlen(DisplayString), (uint8 *)DisplayString)->result;
  if (resp) {
@@ -243,6 +244,11 @@ void handle_gecko_event(uint32_t evt_id, struct gecko_cmd_packet *evt)
 	  if(load_val->result)
 	  {
 		  servo_state=0;
+		  struct gecko_msg_flash_ps_save_rsp_t *response = gecko_cmd_flash_ps_save(0x4000,1,&servo_state);
+		  if(response->result)
+		  {
+			  LOG_INFO("Error:%d",response->result);
+		  }
 	  }
 	  else
 	  {
@@ -436,7 +442,14 @@ case gecko_evt_mesh_generic_server_client_request_id:
 			CORE_ENTER_CRITICAL();
 				door_open=true;
 			CORE_EXIT_CRITICAL();
+			servo_state+=1;
 			ServoPosition(unlock);//PWMFunction(true,true);//UnlockDoor();
+			struct gecko_msg_flash_ps_save_rsp_t *response = gecko_cmd_flash_ps_save(0x4000,1,&servo_state);
+			if(response->result)
+			{
+				LOG_INFO("Error:%d",response->result);
+			}
+
 			displayPrintf(DISPLAY_ROW_ACTION, "Door Open");
 			IRStart();
 		}
@@ -450,7 +463,13 @@ case gecko_evt_mesh_generic_server_client_request_id:
 			  {
 					LOG_INFO("Server_Client_Request_ID:[TIME]%f\n",log_val());
 					LOG_INFO("Smoke Detected\n");
+					servo_state+=1;
 					ServoPosition(unlock);//PWMFunction(true,true);//UnlockDoor();
+					struct gecko_msg_flash_ps_save_rsp_t *response = gecko_cmd_flash_ps_save(0x4000,1,&servo_state);
+					if(response->result)
+					{
+						LOG_INFO("Error:%d",response->result);
+					}
 					displayPrintf(DISPLAY_ROW_ACTION, "Smoke");
 			  }
 			  else if(StoreVal == OVERRIDE)						//Servo is unlocked and "Override" is displayed on LCD.
@@ -475,7 +494,7 @@ case gecko_evt_mesh_generic_server_client_request_id:
 
 
   case gecko_evt_system_external_signal_id:
-
+	  displayPrintf(1,"Unlock:%d",servo_state);
 	  LOG_INFO("External ID");
 	  static uint8_t i=0;
       DetectEvent = evt->data.evt_system_external_signal.extsignals;
@@ -489,9 +508,9 @@ case gecko_evt_mesh_generic_server_client_request_id:
   //      TIMER_Enable(TIMER0,false);
         displayUpdate();
         clearDisplay();
-//        struct gecko_msg_flash_ps_load_rsp_t *load_val=gecko_cmd_flash_ps_load(STORE_KEY);
-//		if(load_val->result==0)
-//			LOG_INFO("Door Unlock count:%d",servo_state);
+        struct gecko_msg_flash_ps_load_rsp_t *load_val=gecko_cmd_flash_ps_load(STORE_KEY);
+		if(load_val->result==0)
+			displayPrintf(1,"Unlock:%d",servo_state);
       }
 
        if(DetectEvent & timer_trigg)
@@ -514,7 +533,6 @@ case gecko_evt_mesh_generic_server_client_request_id:
 //				displayPrintf(DISPLAY_ROW_MAX,"Unlock:%d",servo_state);
 		  }
 		  LOG_INFO("%sPublishing:[TIME]%f\n",ButtonState[ButtonToggle],log_val());  //display printf state.
-		  displayPrintf(9,"Unlock:%d",servo_state);
 		  displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s",ButtonState[ButtonToggle]);
 		  transID+=1;
 

@@ -75,14 +75,14 @@ void ServoPosition(bool state)
 	{
 		LOG_INFO(">>>>>>>>>>>>locked");
 		door_open=false;
-		servo_state+=1;
+//		servo_state+=1;
 		TIMER_CompareSet (TIMER0, 0, (topValue*0.05)); //19200
 		displayPrintf(DISPLAY_ROW_ACTION,"Door locked");
-		struct gecko_msg_flash_ps_save_rsp_t *response = gecko_cmd_flash_ps_save(0x4000,1,&servo_state);
-		if(response->result)
-		{
-			LOG_INFO("Error:%d",response->result);
-		}
+//		struct gecko_msg_flash_ps_save_rsp_t *response = gecko_cmd_flash_ps_save(0x4000,1,&servo_state);
+//		if(response->result)
+//		{
+//			LOG_INFO("Error:%d",response->result);
+//		}
 	}
 	TIMER_Enable(TIMER0,true);
 	LOG_INFO("<<<<<<<<<<<<<<<<End");
