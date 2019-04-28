@@ -41,7 +41,6 @@
 #include "native_gecko.h"
 #include "src/display.h"
 #include "src/LETIMER.h"
-#include "src/buzzer.h"
 #include "src/display.h"
 
 uint8_t tmp_state = 0;
@@ -215,7 +214,6 @@ void gecko_main_init()
 	initApp();
 	GPIO_Int_Enable();
 	initADC();
-	BuzzerInit();
 	PWMInit();
 	elemID = 0xffff;
 	AppKey = 0;
@@ -477,6 +475,7 @@ case gecko_evt_mesh_generic_server_client_request_id:
 
 
   case gecko_evt_system_external_signal_id:
+
 	  LOG_INFO("External ID");
 	  static uint8_t i=0;
       DetectEvent = evt->data.evt_system_external_signal.extsignals;
@@ -510,9 +509,12 @@ case gecko_evt_mesh_generic_server_client_request_id:
 		  	  event_mask &= ~button_event;
 		  CORE_EXIT_CRITICAL();
 		  struct gecko_msg_flash_ps_load_rsp_t *load_val=gecko_cmd_flash_ps_load(STORE_KEY);
-		  if(load_val->result==0)
+		  if(load_val->result==0){
 				LOG_INFO("Door Unlock count:%d",servo_state);
+//				displayPrintf(DISPLAY_ROW_MAX,"Unlock:%d",servo_state);
+		  }
 		  LOG_INFO("%sPublishing:[TIME]%f\n",ButtonState[ButtonToggle],log_val());  //display printf state.
+		  displayPrintf(9,"Unlock:%d",servo_state);
 		  displayPrintf(DISPLAY_ROW_TEMPVALUE,"%s",ButtonState[ButtonToggle]);
 		  transID+=1;
 
