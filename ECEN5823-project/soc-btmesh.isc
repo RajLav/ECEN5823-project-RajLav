@@ -123,8 +123,8 @@ appPlugin: slot-manager=false
         "SIG Models": [
           "0x0000",
           "Configuration Server",
-          "0x1001",
-          "Generic OnOff Client",
+          "0x1002",
+          "Generic Level Server",
           "0x1000",
           "Generic OnOff Server"]
         ,

@@ -11,7 +11,12 @@
 #define PinB1		7
 
 #define GPIO_SET_DISPLAY_EXT_COMIN_IMPLEMENTED 	1
-#define GPIO_DISPLAY_SUPPORT_IMPLEMENTED		1
+#define GPIO_DISPLAY_SUPPORT_IMPLEMENTED		1	//done
+
+//***********************************************************************************
+// function prototypes
+//***********************************************************************************
+
 void gpioInit();
 void gpioLed0SetOn();
 void gpioLed0SetOff();
@@ -20,4 +25,4 @@ void gpioLed1SetOff();
 void gpioEnableDisplay();
 void gpioSetDisplayExtcomin(bool high);
 void Button_Init(void);
-#endif
+#endif /* SRC_GPIO_H_ */

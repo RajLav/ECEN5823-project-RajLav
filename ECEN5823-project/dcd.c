@@ -36,7 +36,7 @@ const uint8_t __mesh_dcd[] = {
         0x00, /* Number of Vendor Models = 0x00 */
         /* Begin SIG Models */
         0x00, 0x00, /* Configuration Server */
-        0x01, 0x10, /* Generic OnOff Client */
+        0x02, 0x10, /* Generic Level Server */
         0x00, 0x10, /* Generic OnOff Server */
         /* End SIG Models */
         /* Begin Vendor Models */

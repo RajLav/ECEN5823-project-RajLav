@@ -66,11 +66,13 @@ void logInit();
 uint32_t loggerGetTimestamp();
 void logFlush();
 #else
-
+/**
+ * Remove all logging related code on builds where logging is not enabled
+ */
 #define LOG_DO(message,level, ...)
 static inline void logInit() {}
 static inline void logFlush() {}
 #endif
 
 
-#endif
+#endif /* SRC_LOG_H_ */

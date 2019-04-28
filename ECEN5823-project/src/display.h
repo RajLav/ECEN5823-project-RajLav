@@ -51,6 +51,7 @@ enum display_row {
 };
 
 #if ECEN5823_INCLUDE_DISPLAY_SUPPORT
+void clearDisplay(void);
 void displayInit();
 bool displayUpdate();
 void displayPrintf(enum display_row row, const char *format, ... );

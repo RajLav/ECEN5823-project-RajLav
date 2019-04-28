@@ -226,6 +226,14 @@ bool displayUpdate()
 	return true;
 }
 
+void clearDisplay(void)
+{
+    displayPrintf(6," ");
+    displayPrintf(7," ");
+    displayPrintf(8," ");
+    displayPrintf(9," ");
+}
+
 #endif // ECEN5823_INCLUDE_DISPLAY_SUPPORT
 
 
